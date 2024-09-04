@@ -1,45 +1,49 @@
+// server/server.js
+
 const express = require('express');
-const path = require('path');
 const { ApolloServer } = require('apollo-server-express');
-const { typeDefs, resolvers } = require('./schemas'); // Import typeDefs and resolvers
+const path = require('path');
 const db = require('./config/connection');
-const { authMiddleware } = require('./utils/auth'); // Import the auth middleware
+const { typeDefs, resolvers } = require('./schemas');
+const { authMiddleware } = require('./utils/auth');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Apollo Server setup
+// Set up Apollo Server
 const server = new ApolloServer({
   typeDefs,
   resolvers,
-  context: authMiddleware, // Apply the auth middleware
+  context: ({ req }) => {
+    // Pass the `authMiddleware` function into the context to handle authentication
+    return authMiddleware({ req });
+  },
 });
 
-// Integrate Apollo Server with Express application
-async function startApolloServer() {
-  await server.start();
+// Apply Apollo middleware to the Express app
+server.start().then(() => {
   server.applyMiddleware({ app });
 
   app.use(express.urlencoded({ extended: true }));
   app.use(express.json());
 
-  // Serve static assets in production
+  // Serve up static assets
   if (process.env.NODE_ENV === 'production') {
     app.use(express.static(path.join(__dirname, '../client/build')));
   }
 
-  // Fallback for any non-Apollo routes (optional if your app has other routes)
+  // Default route
   app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, '../client/build/index.html'));
   });
 
-  // Connect to the database
+  // Start the server
   db.once('open', () => {
-    app.listen(PORT, () =>
-      console.log(`🌍 Now listening on localhost:${PORT}${server.graphqlPath}`)
-    );
+    app.listen(PORT, () => {
+      console.log(`🌍 Now listening on localhost:${PORT}`);
+      console.log(`🚀 Use GraphQL at http://localhost:${PORT}${server.graphqlPath}`);
+    });
   });
-}
+});
 
-startApolloServer();
 
