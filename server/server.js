@@ -1,49 +1,57 @@
 // server/server.js
 
 const express = require('express');
+const session = require('express-session');
 const { ApolloServer } = require('apollo-server-express');
-const path = require('path');
+const typeDefs = require('./graphql/typeDefs');
+const resolvers = require('./graphql/resolvers');
 const db = require('./config/connection');
-const { typeDefs, resolvers } = require('./schemas');
-const { authMiddleware } = require('./utils/auth');
+const path = require('path');
+
+const authMiddleware = require('./utils/auth');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Set up Apollo Server
 const server = new ApolloServer({
   typeDefs,
   resolvers,
-  context: ({ req }) => {
-    // Pass the `authMiddleware` function into the context to handle authentication
-    return authMiddleware({ req });
-  },
+  context: authMiddleware, // Use the middleware here
 });
 
-// Apply Apollo middleware to the Express app
-server.start().then(() => {
+async function startServer() {
+  // Start Apollo Server
+  await server.start();
+
+  // Apply Apollo middleware to Express app
   server.applyMiddleware({ app });
 
-  app.use(express.urlencoded({ extended: true }));
+  // Middleware setup
+  app.use(express.urlencoded({ extended: false }));
   app.use(express.json());
+  app.use(session({
+    secret: process.env.SESSION_SECRET || 'default_secret',
+    resave: false,
+    saveUninitialized: true,
+    cookie: { secure: process.env.NODE_ENV === 'production' }, // Set secure cookies in production
+  }));
 
-  // Serve up static assets
+  // Serve static assets from the React app
   if (process.env.NODE_ENV === 'production') {
-    app.use(express.static(path.join(__dirname, '../client/build')));
+    app.use(express.static(path.join(__dirname, '../client/dist')));
+
+    app.get('*', (req, res) => {
+      res.sendFile(path.join(__dirname, '../client/dist/index.html'));
+    });
   }
 
-  // Default route
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../client/build/index.html'));
-  });
-
-  // Start the server
+  // Connect to MongoDB and start the server
   db.once('open', () => {
     app.listen(PORT, () => {
-      console.log(`🌍 Now listening on localhost:${PORT}`);
-      console.log(`🚀 Use GraphQL at http://localhost:${PORT}${server.graphqlPath}`);
+      console.log(`Server running on http://localhost:${PORT}${server.graphqlPath}`);
     });
   });
-});
+}
 
-
+// Start the server
+startServer();

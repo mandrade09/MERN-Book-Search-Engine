@@ -1,37 +1,31 @@
 const jwt = require('jsonwebtoken');
 
 // Set token secret and expiration date
-const secret = 'mysecretsshhhhh';
+const secret = process.env.SECRET_KEY || 'mysecretsshhhhh'; // Use environment variable or fallback
 const expiration = '2h';
 
-module.exports = {
-  // Auth middleware for GraphQL context
-  authMiddleware: function ({ req }) {
-    // Allows token to be sent via req.query, headers, or body
-    let token = req.body.token || req.query.token || req.headers.authorization;
+const authMiddleware = ({ req }) => {
+  // Check for token in header
+  let token = req.headers.authorization || '';
+  if (token.startsWith('Bearer ')) {
+    token = token.split(' ').pop().trim();
+  }
 
-    // ["Bearer", "<tokenvalue>"]
-    if (req.headers.authorization) {
-      token = token.split(' ').pop().trim();
-    }
+  // Initialize user as an empty object
+  let user = null;
 
-    if (!token) {
-      return req;
-    }
-
+  if (token) {
     try {
-      // Verify token and attach user data to context
-      const { data } = jwt.verify(token, secret, { maxAge: expiration });
-      req.user = data;
-    } catch {
-      console.log('Invalid token');
+      // Verify token and get user data
+      const decoded = jwt.verify(token, secret, { expiresIn: expiration });
+      user = decoded.data; // Extract user data from the token
+    } catch (err) {
+      console.log('Invalid token:', err);
     }
+  }
 
-    return req;
-  },
-  signToken: function ({ username, email, _id }) {
-    const payload = { username, email, _id };
-
-    return jwt.sign({ data: payload }, secret, { expiresIn: expiration });
-  },
+  // Return the user object to the context
+  return { user };
 };
+
+module.exports = authMiddleware;
