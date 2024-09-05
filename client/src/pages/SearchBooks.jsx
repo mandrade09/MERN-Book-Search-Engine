@@ -8,10 +8,11 @@ import {
   Row
 } from 'react-bootstrap';
 import { useQuery, useMutation } from '@apollo/client';
-import { QUERY_BOOKS } from '../graphql/queries';
-import { ADD_BOOK } from '../graphql/mutations';
+import { QUERY_BOOKS } from '../utils/queries';
+import { ADD_BOOK } from '../utils/mutations';
 import Auth from '../utils/auth';
 import { saveBookIds, getSavedBookIds } from '../utils/localStorage';
+import { searchGoogleBooks } from '../utils/API'
 
 const SearchBooks = () => {
   const [searchedBooks, setSearchedBooks] = useState([]);
@@ -34,9 +35,10 @@ const SearchBooks = () => {
 
     try {
       // Replace this with the actual Google Books API query if still using it
-      const bookData = await fetchGoogleBooks(searchInput); 
-
-      setSearchedBooks(bookData);
+      const bookData = await searchGoogleBooks(searchInput); 
+      const data = await bookData.json()
+      console.log(data)
+      setSearchedBooks(data.items);
       setSearchInput('');
     } catch (err) {
       console.error(err);
@@ -95,21 +97,21 @@ const SearchBooks = () => {
         <Row>
           {searchedBooks.map((book) => {
             return (
-              <Col md="4" key={book.bookId}>
+              <Col md="4" key={book.id}>
                 <Card border='dark'>
-                  {book.image ? (
-                    <Card.Img src={book.image} alt={`The cover for ${book.title}`} variant='top' />
+                  {book.volumeInfo.imageLinks.thumbnail ? (
+                    <Card.Img src={book.volumeInfo.imageLinks.thumbnail} alt={`The cover for ${book.volumeInfo.title}`} variant='top' />
                   ) : null}
                   <Card.Body>
-                    <Card.Title>{book.title}</Card.Title>
-                    <p className='small'>Authors: {book.authors}</p>
-                    <Card.Text>{book.description}</Card.Text>
+                    <Card.Title>{book.volumeInfo.title}</Card.Title>
+                    <p className='small'>Authors: {book.volumeInfo.authors.join(", ")}</p>
+                    <Card.Text>{book.volumeInfo.description}</Card.Text>
                     {Auth.loggedIn() && (
                       <Button
-                        disabled={savedBookIds?.some((savedBookId) => savedBookId === book.bookId)}
+                        disabled={savedBookIds?.some((savedBookId) => savedBookId === book.id)}
                         className='btn-block btn-info'
-                        onClick={() => handleSaveBook(book.bookId)}>
-                        {savedBookIds?.some((savedBookId) => savedBookId === book.bookId)
+                        onClick={() => handleSaveBook(book.id)}>
+                        {savedBookIds?.some((savedBookId) => savedBookId === book.id)
                           ? 'This book has already been saved!'
                           : 'Save this Book!'}
                       </Button>
