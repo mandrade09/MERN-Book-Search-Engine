@@ -8,7 +8,7 @@ const resolvers = require('./graphql/resolvers');
 const db = require('./config/connection');
 const path = require('path');
 
-const { authMiddleware } = require('./utils/auth');
+const authMiddleware = require('./utils/auth');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -29,12 +29,12 @@ async function startServer() {
   // Middleware setup
   app.use(express.urlencoded({ extended: false }));
   app.use(express.json());
-  // app.use(session({
-  //   secret: process.env.SESSION_SECRET || 'default_secret',
-  //   resave: false,
-  //   saveUninitialized: true,
-  //   cookie: { secure: process.env.NODE_ENV === 'production' }, // Set secure cookies in production
-  // }));
+  app.use(session({
+    secret: process.env.SESSION_SECRET || 'default_secret',
+    resave: false,
+    saveUninitialized: true,
+    cookie: { secure: process.env.NODE_ENV === 'production' }, // Set secure cookies in production
+  }));
 
   // Serve static assets from the React app
   if (process.env.NODE_ENV === 'production') {
