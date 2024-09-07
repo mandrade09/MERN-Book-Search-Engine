@@ -4,28 +4,33 @@ const jwt = require('jsonwebtoken');
 const secret = process.env.SECRET_KEY || 'mysecretsshhhhh'; // Use environment variable or fallback
 const expiration = '2h';
 
-const authMiddleware = ({ req }) => {
-  // Check for token in header
-  let token = req.headers.authorization || '';
-  if (token.startsWith('Bearer ')) {
-    token = token.split(' ').pop().trim();
-  }
 
-  // Initialize user as an empty object
-  let user = null;
+module.exports = {
+  signToken: function ({ username, email, _id }) {
+    const payload = { username, email, _id };
+    return jwt.sign({ data: payload }, secret, { expiresIn: expiration });
+  },
+  authMiddleware: function ({ req }) {
+    // allows token to be sent via req.body, req.query, or headers
+    let token = req.body.token || req.query.token || req.headers.authorization;
 
-  if (token) {
-    try {
-      // Verify token and get user data
-      const decoded = jwt.verify(token, secret, { expiresIn: expiration });
-      user = decoded.data; // Extract user data from the token
-    } catch (err) {
-      console.log('Invalid token:', err);
+    // separate "Bearer" from "<tokenvalue>"
+    if (req.headers.authorization) {
+      token = token.split(' ').pop().trim();
     }
-  }
 
-  // Return the user object to the context
-  return { user };
+    if (!token) {
+      return req;
+    }
+
+    try {
+      // decode and attach user data to request object
+      const { data } = jwt.verify(token, secret, { maxAge: expiration });
+      req.user = data;
+    } catch {
+      console.log('Invalid token');
+    }
+
+    return req;
+  },
 };
-
-module.exports = authMiddleware;
