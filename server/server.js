@@ -29,12 +29,7 @@ async function startServer() {
   // Middleware setup
   app.use(express.urlencoded({ extended: false }));
   app.use(express.json());
-  app.use(session({
-    secret: process.env.SESSION_SECRET || 'default_secret',
-    resave: false,
-    saveUninitialized: true,
-    cookie: { secure: process.env.NODE_ENV === 'production' }, // Set secure cookies in production
-  }));
+
 
   // Serve static assets from the React app
   if (process.env.NODE_ENV === 'production') {
