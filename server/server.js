@@ -3,6 +3,7 @@
 const express = require('express');
 const session = require('express-session');
 const { ApolloServer } = require('apollo-server-express');
+const { expressMiddleware } = require('@apollo/server/express4');
 const typeDefs = require('./graphql/typeDefs');
 const resolvers = require('./graphql/resolvers');
 const db = require('./config/connection');
@@ -24,7 +25,7 @@ async function startServer() {
   await server.start();
 
   // Apply Apollo middleware to Express app
-  server.applyMiddleware({ app });
+  // server.applyMiddleware({ app });
 
   // Middleware setup
   app.use(express.urlencoded({ extended: false }));
