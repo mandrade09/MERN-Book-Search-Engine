@@ -30,6 +30,9 @@ async function startServer() {
   app.use(express.urlencoded({ extended: false }));
   app.use(express.json());
 
+  app.use('/graphql', expressMiddleware(server, {
+    context: authMiddleware
+  }));
 
   // Serve static assets from the React app
   if (process.env.NODE_ENV === 'production') {
