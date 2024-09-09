@@ -1,6 +1,6 @@
 const Book = require('../models/Book');
 const User = require('../models/User'); // Make sure you include the User model
-const { AuthenticationError } = require('apollo-server-express');
+const { AuthenticationError } = require('@apollo/server');
 
 const { signToken } = require('../utils/auth');
 
